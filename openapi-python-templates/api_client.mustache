@@ -37,6 +37,9 @@ class ApiClient:
         self.middleware: MiddlewareT = BaseMiddleware()
         self._async_client = AsyncClient(**kwargs)
 
+    async def close(self):
+        await self._async_client.aclose()
+
     @overload
     async def request(
         self, *, type_: Type[T], method: str, url: str, path_params: Dict[str, Any] = None, **kwargs: Any
