@@ -1,6 +1,11 @@
 #! /usr/bin/env bash
 
 set -e
+
+# Prevent automatic path conversions by MSYS-based bash. 
+# It's revelant only for Windows
+export MSYS_NO_PATHCONV=1 
+
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 
 CMDNAME=${0##*/}
@@ -12,8 +17,8 @@ PACKAGE_NAME=""
 IMPORT_NAME=""
 WORK_DIR=""
 TEMP_DIR=""
+WITH_META=""
 MAP_LOCALHOST=""
-
 
 usage() {
   exitcode="$1"
@@ -29,6 +34,7 @@ Options:
   -o, --output-path        The parent folder to use for the generated package
   -t, --temp-dir           The location for temporary files
   -m, --map-localhost      (OSX): Map localhost / 127.0.0.1 to host.docker.internal
+  --with-meta              Generate meta-data (setup.py, docs, tests)
   -h, --help               Show this message
 USAGE
   exit "$exitcode"
@@ -40,7 +46,7 @@ main() {
   WORK_DIR=$(mktemp -d "$TEMP_DIR/tmp.XXXXXXXXX")
   echo "Storing intermediate outputs in ${WORK_DIR}; it will be removed if generation is successful"
   setup_openapi_generation "$WORK_DIR"
-  "${PROJECT_ROOT}/scripts/util/openapi-generate.sh" -p "$PACKAGE_NAME" -w "$WORK_DIR" -i "$INPUT" -- "$@"
+  "${PROJECT_ROOT}/scripts/util/openapi-generate.sh" -p "$PACKAGE_NAME" -w "$WORK_DIR" -i "$INPUT" ${WITH_META:+ --with-meta} -- "$@"
 
   cd "${PROJECT_ROOT}"
 
@@ -126,7 +132,15 @@ clean_openapi_generator_output() {
 move_generated_output() {
   WORK_DIR=$1
   mkdir -p "$OUTPUT_PATH"
-  mv "$WORK_DIR"/"$PACKAGE_NAME" "$OUTPUT_PATH"
+  if [ -n "$WITH_META" ]; then
+    # TODO: add valid generation for docs
+    rm -r "$WORK_DIR"/docs
+    # TODO: add valid generation for tests
+    rm -r "$WORK_DIR"/test
+    mv "$WORK_DIR" "$OUTPUT_PATH"/"$PACKAGE_NAME"
+  else
+     mv "$WORK_DIR"/"$PACKAGE_NAME" "$OUTPUT_PATH"
+  fi
   rm -r "$WORK_DIR"
 }
 
@@ -176,6 +190,10 @@ while [ $# -gt 0 ]; do
     ;;
   --include-auth)
     INCLUDE_AUTH="yes"
+    shift 1
+    ;;
+  --with-meta)
+    WITH_META="yes"
     shift 1
     ;;
   --)
