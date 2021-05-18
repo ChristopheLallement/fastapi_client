@@ -61,7 +61,7 @@ class _{{classname}}:
         headers = {
 {{#headerParams}}
 {{#required}}
-            "{{baseName}}": str({{paramName}})
+            "{{baseName}}": str({{paramName}}){{#hasMore}},{{/hasMore}}
 {{/required}}
 {{/headerParams}}
         }
